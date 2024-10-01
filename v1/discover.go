@@ -10,7 +10,6 @@ import (
 	"log/slog"
 	"os"
 	"os/exec"
-	"strings"
 
 	"github.com/fsnotify/fsnotify"
 )
@@ -57,13 +56,11 @@ func (d *discovery[T]) Listen() error {
 	return nil
 }
 func (d *discovery[T]) watch(stopC chan struct{}) error {
-
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer watcher.Close()
-	fmt.Println(d.conf.discoverDirectory)
 	err = watcher.Add(d.conf.discoverDirectory)
 	if err != nil {
 		return err
@@ -105,32 +102,29 @@ func (d *discovery[T]) handleNewEvent(stopC chan struct{}) error {
 			func() {
 				mutex.Lock()
 				defer mutex.Unlock()
-				if strings.HasSuffix(file, ".go") {
-					name := file[:len(file)-3]
-					soPath, err := d.buildPlugin(name)
-					if err != nil {
-						defaultLogger.Warn("invalid plugin", slog.String("err", err.Error()))
-						if err := os.Remove(file); err != nil {
-							defaultLogger.Warn("fail to remove invalid plugin", slog.String("err", err.Error()))
-						}
-					} else {
-						pl, ok := getPluginFromCache(soPath)
+				soPath, err := d.buildPlugin(file)
+				if err != nil {
+					defaultLogger.Warn("invalid plugin", slog.String("err", err.Error()))
+					if err := os.Remove(file); err != nil {
+						defaultLogger.Warn("remove invalid plugin fail", slog.String("err", err.Error()))
+					}
+				} else {
+					pl, ok := getPluginFromCache(soPath)
+					if ok {
+						c, ok := pl.(T)
 						if ok {
-							c, ok := pl.(T)
-							if ok {
-								d.registry.Add(name, c)
-								return
-							}
-						}
-						app, err := d.registry.AddByPath(name, soPath)
-						if err != nil {
-							defaultLogger.Warn("fail to add plugin to registry", slog.String("err", err.Error()), slog.String("name", name))
+							d.registry.Add(file, c)
 							return
 						}
-
-						addToCache(soPath, app)
-						defaultLogger.Info("add plugin success", slog.String("name", name))
 					}
+					app, err := d.registry.AddByPath(file, soPath)
+					if err != nil {
+						defaultLogger.Error("add plugin to registry fail", slog.String("err", err.Error()), slog.String("name", file))
+						return
+					}
+
+					addToCache(soPath, app)
+					defaultLogger.Info("add plugin success", slog.String("name", file))
 				}
 			}()
 
@@ -140,7 +134,8 @@ func (d *discovery[T]) handleNewEvent(stopC chan struct{}) error {
 func (d *discovery[T]) buildPlugin(name string) (string, error) {
 	soPath := d.conf.genSoPath(name)
 
-	cmdStr := fmt.Sprintf("go build -buildmode=plugin -gcflags=all='-N -l' -o %s %s", soPath, d.conf.getGoPath(name))
+	goPath := d.conf.discoverDirectory + name
+	cmdStr := fmt.Sprintf("go build -buildmode=plugin -gcflags=all='-N -l' -o %s %s", soPath, goPath)
 	defaultLogger.Info("executing cmd", slog.String("cmd", cmdStr))
 	cmd := exec.Command("bash", "-c", cmdStr)
 	output, err := cmd.Output()

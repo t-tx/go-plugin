@@ -14,7 +14,7 @@ var (
 
 func init() {
 	defaultLogger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
-		Level: slog.LevelError, // Set the default log level to Info
+		Level: slog.LevelWarn,
 	}))
 }
 

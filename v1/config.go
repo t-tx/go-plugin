@@ -39,9 +39,6 @@ func NewDefaultConfig() *config {
 		builtOutputDirectory: "output/",
 	}
 }
-func (c *config) getGoPath(name string) string {
-	return name + ".go"
-}
 
 var counter atomic.Int32
 

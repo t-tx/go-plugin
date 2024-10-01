@@ -1,7 +1,7 @@
 package cplugin
 
 import (
-	"errors"
+	"fmt"
 	"plugin"
 	"sync"
 )
@@ -39,7 +39,7 @@ func (r *registry[T]) AddByPath(name, path string) (t T, err error) {
 	}
 	app, ok := symApp.(T)
 	if !ok {
-		err = errors.New("invalid type")
+		err = fmt.Errorf("invalid type: %T != %T", t, symApp)
 		return
 	}
 

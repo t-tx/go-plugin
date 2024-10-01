@@ -12,18 +12,21 @@ func main() {
 	registry := cplugin.NewRegistry[*types.Cal[int]]()
 
 	discovery := cplugin.NewDiscoveryWithRegistry(registry,
-		cplugin.NewDefaultConfig().
+		cplugin.NewConfig().
+			SetBuiltOutputDirectory("output/").
+			SetDiscoverDirectory("resources/").
+			SetDiscoverInterval(time.Second*1).
 			Preload(
-				cplugin.WithPreLoad("resources/sum.go", false),
-				cplugin.WithPreLoad("resources/min.go", false),
-				cplugin.WithPreLoad("resources/max.go", false),
+				cplugin.WithPreLoad("sum.go", false),
+				cplugin.WithPreLoad("min.go", false),
+				cplugin.WithPreLoad("max.go", false),
 			))
 
 	defer discovery.Destroy()
 
 	for {
 		func() {
-			cal, ok := registry.Get("resources/sum")
+			cal, ok := registry.Get("sum.go")
 			if !ok {
 				fmt.Println("can't find sum")
 				time.Sleep(time.Second * 2)
@@ -33,7 +36,7 @@ func main() {
 			time.Sleep(time.Second * 2)
 		}()
 		func() {
-			cal, ok := registry.Get("resources/max")
+			cal, ok := registry.Get("max.go")
 			if !ok {
 				fmt.Println("can't find max")
 				time.Sleep(time.Second * 2)
@@ -43,7 +46,7 @@ func main() {
 			time.Sleep(time.Second * 2)
 		}()
 		func() {
-			cal, ok := registry.Get("resources/min")
+			cal, ok := registry.Get("min.go")
 			if !ok {
 				fmt.Println("can't find min")
 				time.Sleep(time.Second * 2)
@@ -55,6 +58,6 @@ func main() {
 	}
 }
 
-type Cal interface {
-	Sum(a, b int) int
+type Cal[T any] interface {
+	Calculate(a ...T) T
 }
