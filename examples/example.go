@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/t-tx/go-plugin/examples/resources/def"
 	"github.com/t-tx/go-plugin/examples/types"
 	cplugin "github.com/t-tx/go-plugin/v1"
 )
@@ -55,6 +56,8 @@ func main() {
 			fmt.Println("min: ", (*cal).Calculate(1, 2, 3, 5, 6, 8, 9, 10))
 			time.Sleep(time.Second * 2)
 		}()
+		//can change the value of CAN_BE_ACCESS_FROM_PLUGIN in plugin => YES
+		def.CAN_BE_ACCESS_FROM_PLUGIN++
 	}
 }
 

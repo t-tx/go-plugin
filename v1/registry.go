@@ -1,6 +1,7 @@
 package cplugin
 
 import (
+	"context"
 	"fmt"
 	"plugin"
 	"sync"
@@ -11,6 +12,18 @@ type registry[T any] struct {
 	mutex    sync.RWMutex
 }
 
+func (r *registry[T]) Wait(ctx context.Context, name string) (t T, ok bool) {
+	for {
+		select {
+		case <-ctx.Done():
+			return t, false
+		default:
+			if s, ok := r.Get(name); ok {
+				return s, true
+			}
+		}
+	}
+}
 func (r *registry[T]) Get(name string) (T, bool) {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
